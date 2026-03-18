@@ -36,8 +36,9 @@ if "__main__" == __name__:
 def print_help():
 	print("""
   liststations - \n
-	listroutestations - \n
-	listroutes - \n
-	liststationportals - \n
-	nearest - \n
-	quit - """)
+	print a list of names of all subway stations \n
+        listroutestations - lists the route of a specific train line (number or letter) \n
+        listroutes - lists the train lines at a given station \n
+        liststationportals - lists entrances/exits of a given station and if it has a elevator \n
+        nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
+        quit - """)
