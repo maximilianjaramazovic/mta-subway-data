@@ -22,6 +22,10 @@ def main():
   # Program loop
   user_input = str(input("Enter option: "))
   while user_input != "quit":
+    if user_input == "help":
+      print_help()
+    else:
+      print("Invalid option. Type 'help' to see the list of valid commands.")
     user_input = str(input("Enter option: "))
 
 
