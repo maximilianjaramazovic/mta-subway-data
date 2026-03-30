@@ -7,7 +7,10 @@ def main():
   if len(arguments_list) != 1:
     print("Please run the program providing one argument, which specifys the path to the mta data table.")
   else:
+    file_path = arguments_list[1]
     try:
+      with open(file_path) as f:
+        
       pass
       #note fot rebasing idk
     except:
