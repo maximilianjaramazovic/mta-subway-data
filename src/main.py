@@ -87,3 +87,13 @@ def print_help():
         liststationportals - lists entrances/exits of a given station and if it has a elevator \n
         nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
         quit - """)
+
+def list_stations(station_dict):
+  # create a list for station names
+  #for each item in statuion dict, add station name to list 
+  #sort the list
+  #print
+  pass
+  #DONE
+
+
