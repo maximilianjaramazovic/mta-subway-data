@@ -96,4 +96,33 @@ def list_stations(station_dict):
   pass
   #DONE
 
+def list_route_stations(station_dict):
+	# create a stations on a specific train line
+	# for each station that has that train line, add station name to train station list
+	# sort the list
+	# print
+	pass
+	#Done
+
+def list_routes(station_dict):
+	# Lists train lines of a specific station
+	# for each train line found at a station, add train line to the list
+	# sort the list
+	# print
+	pass
+	#done
+
+def list_station_portals(station_dict):
+	# Lists the entrances/exits of a specific station and accessibility
+	# For each station find all entrances/exits, add to the list
+	# Print
+	pass
+	#Done
+
+def nearest(station_dict):
+	# Uses specific latitude and longitude to find nearest station to user's location
+	# For all stations near the area, add to the list
+	# Print
+	pass
+	#Done 
 
