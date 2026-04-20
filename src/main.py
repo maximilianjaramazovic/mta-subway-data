@@ -1,43 +1,28 @@
-import sys
-import fileinput
-
-# Data types
-class Station:
-  name: str
-  # Division,
-  # Line,
-  # Station Name,
-  # Station Latitude,
-  # Station Longitude,
-  # Route1,Route2,Route3,Route4,Route5,Route6,Route7,Route8,Route9,Route10,Route11,
-  # Entrance Type,
-  # Entry,
-  # Exit Only,
-  # Vending,
-  # Staffing,
-  # Staff Hours,
-  # ADA,
-  # ADA Notes,
-  # Free Crossover,
-  # North South Street,
-  # East West Street,
-  # Corner,
-  # Entrance Latitude,
-  # Entrance Longitude,
-  # Station Location,
-  # Entrance Location
-  def __init__(self, line):
-    pass
-
+#!/usr/bin/env python3
+"""
+  MTA Subway Station Data Program
+  Usage: main.py <path to mta data table>
+  Description: 
+    This program takes in a data table of mta subway stations and allows the user to query the data
+    in various ways, such as listing all stations, listing stations on a specific train line, listing
+    train lines at a specific station, listing entrances/exits of a specific station and accessibility,
+    and finding nearby stations based on latitude and longitude. The program is designed to be
+    user-friendly and provides helpful prompts for the user to navigate through the options.
+  Authors: 
+  Date: 4/20/2026
+  Data Source: 
+"""
+import sys, csv, sqlite3
 
 def main():
   # Checking for input data table
   arguments_list = sys.argv[1:]
   if len(arguments_list) != 1:
-    print("Please run the program providing one argument, which specifys the path to the mta data table.")
+    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
+    exit(1)
   else:
     file_path = arguments_list[1]
-    station_data = initialize_data(file_path)
+    initialize_db(file_path)
 
   # Starting program
   print("""
@@ -54,26 +39,16 @@ def main():
       print("Invalid option. Type 'help' to see the list of valid commands.")
     user_input = str(input("Enter option: "))
 
-def initialize_data(file_path):
-  try:
-    f = open(file_path)
-  except:
-    print ("Error: file not found. Please check the file path and try again.")
-  #ignore first line because that is the header
-  station_dict = {}
-  f.readline()
-  #each line get the station name, and insert into array of stations storing station datatypes
-  while(f.readable()):
-    line = f.readline()
-    #store each property
-    #if the next entry is the same station, add exit to exit array and entrence to enterance array
-    #if the next entry is different repeat initial process.
-    #if end of file, break loop
-    if line == "":
-      break
-  
-  return station_dict
+def initialize_db(file_path):
+  with sqlite3.connect('mta.db') as con:
+    cur = con.cursor()
+    with open(file_path, mode="r") as f:
+        reader = csv.reader(f)
+        reader.__next__() # skipping header
+        data = list(reader)
 
+    # Bulk insterting data into the database
+    cur.executemany("INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?", data)
 
 
 if "__main__" == __name__:
