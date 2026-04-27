@@ -24,7 +24,7 @@ def main():
     file_path = arguments_list[1]
     initialize_db(file_path)
 
-  # Starting program
+
   print("""
     Welcome to the subway program. \n
     To begin, try typing 'help' to see the list of valid commands. \n
@@ -71,12 +71,33 @@ def list_stations(station_dict):
   pass
   #DONE
 
-def list_route_stations(station_dict):
+def list_route_stations():
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
 	# print
-	pass
+    #Get Train Route from User
+    route = input("Enter the train line (e.g., N, R, M, 1): ").strip().upper()
+    #Connecting Database created in initialize_db
+    with sqlite3.connect('mta.db') as con:
+        cur = con.curser()
+
+        #Use of % since a station may serve many routes
+        #This looks for route anywhere in the 'route' column
+        query = "Select Distinct station_name FROM stations WHERE routes like ?"
+        cur.execute(query, (f'%{route}%',))
+
+        #Taking name and sorting
+        stations = [row[0] for row in cur.fetchall()]
+        stations.sort()
+
+    #Print results
+    if stations: 
+        print(f"\nStations on the {route} line:")
+        for station in stations:
+            print(f"- {stations}")
+    else:
+        print(f"No stations found for line {route}.")
 	#Done
 
 def list_routes(station_dict):
