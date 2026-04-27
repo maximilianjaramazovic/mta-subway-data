@@ -12,56 +12,18 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, csv, sqlite3
-
-def main():
-  # Checking for input data table
-  arguments_list = sys.argv[1:]
-  if len(arguments_list) != 1:
-    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
-    exit(1)
-  else:
-    file_path = arguments_list[1]
-    initialize_db(file_path)
-
-  # Starting program
-  print("""
-    Welcome to the subway program. \n
-    To begin, try typing 'help' to see the list of valid commands. \n
-    """)
-  
-  # Program loop
-  user_input = str(input("Enter option: "))
-  while user_input != "quit":
-    if user_input == "help":
-      print_help()
-    else:
-      print("Invalid option. Type 'help' to see the list of valid commands.")
-    user_input = str(input("Enter option: "))
-
-def initialize_db(file_path):
-  with sqlite3.connect('mta.db') as con:
-    cur = con.cursor()
-    with open(file_path, mode="r") as f:
-        reader = csv.reader(f)
-        reader.__next__() # skipping header
-        data = list(reader)
-
-    # Bulk insterting data into the database
-    cur.executemany("INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?", data)
-
-
-if "__main__" == __name__:
-  main()
+import sys, csv, duckdb, os
 
 def print_help():
         print("""
-  liststations - print a list of names of all subway stations \n
-        listroutestations - lists the route of a specific train line (number or letter) \n
-        listroutes - lists the train lines at a given station \n
-        liststationportals - lists entrances/exits of a given station and if it has a elevator \n
-        nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
-        quit - """)
+  help - prints this help message
+  liststations - print a list of names of all subway stations
+  listroutestations - lists the route of a specific train line (number or letter)
+  listroutes - lists the train lines at a given station
+  liststationportals - lists entrances/exits of a given station and if it has a elevator
+  nearest - nearest <latitude> <longitude> would provide nearby stations and routes
+  quit - exits the program
+  """)
 
 def list_stations(station_dict):
   # create a list for station names
@@ -87,17 +49,44 @@ def list_routes(station_dict):
 	pass
 	#done
 
-def list_station_portals(station_dict):
-	# Lists the entrances/exits of a specific station and accessibility
-	# For each station find all entrances/exits, add to the list
-	# Print
+def list_station_portals(station_name):
+    # duckdb.query("""SELECT Entrance, Exit
+    #                 WHERE Station Name == ?""", station_name)
 	pass
 	#Done
 
 def nearest(station_dict):
-	# Uses specific latitude and longitude to find nearest station to user's location
-	# For all stations near the area, add to the list
-	# Print
+
 	pass
 	#Done 
 
+def main():
+  # Checking for input data table
+  if len(sys.argv) < 1:
+    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
+    exit(1)
+  else:
+    file_path = sys.argv[1]
+
+  # Initialize duckdb  
+  con = duckdb.connect()
+  con.execute(f"""CREATE TABLE IF NOT EXISTS station_data AS SELECT * FROM read_csv_auto('{file_path}')""")
+    
+  print(con.execute("""SELECT * FROM station_data""").fetchall())  
+  # Starting program
+  print("""
+    Welcome to the subway program. \n
+    To begin, try typing 'help' to see the list of valid commands. \n
+    """)
+  
+  # Program loop
+  user_input = str(input("Enter option: "))
+  while user_input != "quit":
+    if user_input == "help":
+      print_help()
+    else:
+      print("Invalid option. Type 'help' to see the list of valid commands.")
+    user_input = str(input("Enter option: "))
+
+if "__main__" == __name__:
+  main()
