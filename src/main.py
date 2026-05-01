@@ -11,7 +11,7 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, duckdb,os, re
+import sys, duckdb
 
 def print_help():
     print("""
@@ -30,7 +30,7 @@ def list_stations(station_dict):
   pass
   #DONE
 
-def list_route_stations():
+def list_route_stations(connection: duckdb.DuckDBPyConnection):
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
@@ -38,23 +38,25 @@ def list_route_stations():
     #Get Train Route from User
     route = input("Enter the train line (e.g., N, R, M, 1): ").strip().upper()
     #Connecting Database created in initialize_db
-    with sqlite3.connect('mta.db') as con:
-        cur = con.curser()
 
-        #Use of % since a station may serve many routes
-        #This looks for route anywhere in the 'route' column
-        query = "Select Distinct station_name FROM stations WHERE routes like ?"
-        cur.execute(query, (f'%{route}%',))
+    #Use of % since a station may serve many routes
+    #This looks for route anywhere in the 'route' column
+    query = f"""
+      Select Distinct stop_name 
+      FROM stops
+      WHERE daytime_routes like ?
+      """
+    connection.execute(query, (f'%{route}%',))
 
-        #Taking name and sorting
-        stations = [row[0] for row in cur.fetchall()]
-        stations.sort()
+    #Taking name and sorting
+    stations = [row[0] for row in connection.fetchall()]
+    stations.sort()
 
     #Print results
     if stations: 
         print(f"\nStations on the {route} line:")
         for station in stations:
-            print(f"- {stations}")
+            print(f"- {station}")
     else:
         print(f"No stations found for line {route}.")
 	#Done
@@ -88,7 +90,34 @@ def main():
 
   # Initialize duckdb  
   con = duckdb.connect()
-  con.execute(f"""CREATE TABLE IF NOT EXISTS station_data AS SELECT * FROM read_csv_auto('{file_path}')""")
+  con.execute("""
+    CREATE TABLE stops (
+      gtfs_stop_id VARCHAR(3),
+      station_id INTEGER,
+      complex_id INTEGER,
+      division VARCHAR,
+      line VARCHAR,
+      stop_name VARCHAR,
+      borough VARCHAR,
+      cbd BOOLEAN,
+      daytime_routes VARCHAR,
+      structure VARCHAR,
+      gtfs_latitude DOUBLE,
+      gtfs_longitude DOUBLE,
+      north_direction_label VARCHAR,
+      south_direction_label VARCHAR,
+      ada INTEGER,
+      ada_northbound INTEGER,
+      ada_southbound INTEGER,
+      ada_notes VARCHAR,
+      georeference VARCHAR
+    );
+  """)
+
+  con.execute(f"""
+    COPY stops 
+    FROM '{file_path}' (AUTO_DETECT TRUE);
+  """)
 
   # Starting program
   print("""
@@ -105,7 +134,7 @@ def main():
     elif user_input == "liststations":
       list_stations()
     elif user_input == "listroutestations":
-      list_route_stations()
+      list_route_stations(con)
     elif user_input == "^listroutes\s+(.+)$":
       
       list_routes(input)
