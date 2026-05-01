@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
   MTA Subway Station Data Program
   Usage: main.py <path to mta data table>
@@ -12,7 +11,7 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, csv, duckdb, os
+import sys, duckdb, os, re
 
 def print_help():
         print("""
@@ -71,12 +70,12 @@ def main():
   # Initialize duckdb  
   con = duckdb.connect()
   con.execute(f"""CREATE TABLE IF NOT EXISTS station_data AS SELECT * FROM read_csv_auto('{file_path}')""")
-    
-  print(con.execute("""SELECT * FROM station_data""").fetchall())  
+
   # Starting program
   print("""
     Welcome to the subway program. \n
     To begin, try typing 'help' to see the list of valid commands. \n
+    To exit, type 'quit'.
     """)
   
   # Program loop
@@ -84,6 +83,13 @@ def main():
   while user_input != "quit":
     if user_input == "help":
       print_help()
+    elif user_input == "liststations":
+      list_stations()
+    elif user_input == "listroutestations":
+      list_route_stations()
+    elif user_input == "^listroutes\s+(.+)$":
+      
+      list_routes(input)
     else:
       print("Invalid option. Type 'help' to see the list of valid commands.")
     user_input = str(input("Enter option: "))
