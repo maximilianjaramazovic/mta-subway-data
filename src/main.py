@@ -1,92 +1,26 @@
-import sys
-import fileinput
-
-# Data types
-class Station:
-  name: str
-  # Division,
-  # Line,
-  # Station Name,
-  # Station Latitude,
-  # Station Longitude,
-  # Route1,Route2,Route3,Route4,Route5,Route6,Route7,Route8,Route9,Route10,Route11,
-  # Entrance Type,
-  # Entry,
-  # Exit Only,
-  # Vending,
-  # Staffing,
-  # Staff Hours,
-  # ADA,
-  # ADA Notes,
-  # Free Crossover,
-  # North South Street,
-  # East West Street,
-  # Corner,
-  # Entrance Latitude,
-  # Entrance Longitude,
-  # Station Location,
-  # Entrance Location
-  def __init__(self, line):
-    pass
-
-
-def main():
-  # Checking for input data table
-  arguments_list = sys.argv[1:]
-  if len(arguments_list) != 1:
-    print("Please run the program providing one argument, which specifys the path to the mta data table.")
-  else:
-    file_path = arguments_list[1]
-    station_data = initialize_data(file_path)
-
-  # Starting program
-  print("""
-    Welcome to the subway program. \n
-    To begin, try typing 'help' to see the list of valid commands. \n
-    """)
-  
-  # Program loop
-  user_input = str(input("Enter option: "))
-  while user_input != "quit":
-    if user_input == "help":
-      print_help()
-    else:
-      print("Invalid option. Type 'help' to see the list of valid commands.")
-    user_input = str(input("Enter option: "))
-
-def initialize_data(file_path):
-  try:
-    f = open(file_path)
-  except:
-    print ("Error: file not found. Please check the file path and try again.")
-  #ignore first line because that is the header
-  station_dict = {}
-  f.readline()
-  #each line get the station name, and insert into array of stations storing station datatypes
-  while(f.readable()):
-    line = f.readline()
-    #store each property
-    #if the next entry is the same station, add exit to exit array and entrence to enterance array
-    #if the next entry is different repeat initial process.
-    #if end of file, break loop
-    if line == "":
-      break
-  
-  return station_dict
-
-
-
-if "__main__" == __name__:
-  main()
+"""
+  MTA Subway Station Data Program
+  Usage: main.py <path to mta data table>
+  Description: 
+    This program takes in a data table of mta subway stations and allows the user to query the data
+    in various ways, such as listing all stations, listing stations on a specific train line, listing
+    train lines at a specific station, listing entrances/exits of a specific station and accessibility,
+    and finding nearby stations based on latitude and longitude. The program is designed to be
+    user-friendly and provides helpful prompts for the user to navigate through the options.
+  Authors: 
+  Date: 4/20/2026
+  Data Source: 
+"""
+import sys, duckdb, re
 
 def print_help():
-        print("""
-  liststations - print a list of names of all subway stations \n
-        listroutestations - lists the route of a specific train line (number or letter) \n
-        listroutes - lists the train lines at a given station \n
-        liststationportals - lists entrances/exits of a given station and if it has a elevator \n
-        nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
-        quit - """)
+    print("""
+    liststations - print a list of names of all subway stations \n
+    listroutestations - lists the route of a specific train line (number or letter) \n
+    listroutes - lists the train lines at a given station \n
+    liststationportals - lists entrances/exits of a given station and if it has a elevator \n
+    nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
+    quit - """ )
 
 def list_stations(station_dict):
   # create a list for station names
@@ -96,12 +30,32 @@ def list_stations(station_dict):
   pass
   #DONE
 
-def list_route_stations(station_dict):
+def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
 	# print
-	pass
+
+    #Use of % since a station may serve many routes
+    #This looks for route anywhere in the 'daytime_routes' column
+    query = f"""
+      Select Distinct stop_name 
+      FROM stops
+      WHERE daytime_routes like ?
+      """
+    connection.execute(query, (f'%{route.upper()}%',))
+
+    #Taking name and sorting
+    stations = [row[0] for row in connection.fetchall()]
+    stations.sort()
+
+    #Print results
+    if stations: 
+        print(f"\nStations on the {route} line:")
+        for station in stations:
+            print(f"- {station}")
+    else:
+        print(f"No stations found for line {route}.")
 	#Done
 
 def list_routes(station_dict):
@@ -112,17 +66,80 @@ def list_routes(station_dict):
 	pass
 	#done
 
-def list_station_portals(station_dict):
-	# Lists the entrances/exits of a specific station and accessibility
-	# For each station find all entrances/exits, add to the list
-	# Print
+def list_station_portals(station_name):
+    # duckdb.query("""SELECT Entrance, Exit
+    #                 WHERE Station Name == ?""", station_name)
 	pass
 	#Done
 
 def nearest(station_dict):
-	# Uses specific latitude and longitude to find nearest station to user's location
-	# For all stations near the area, add to the list
-	# Print
+
 	pass
 	#Done 
 
+def main():
+  # Checking for input data table
+  if len(sys.argv) < 1:
+    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
+    exit(1)
+  else:
+    file_path = sys.argv[1]
+
+  # Initialize duckdb  
+  con = duckdb.connect()
+  con.execute("""
+    CREATE TABLE stops (
+      gtfs_stop_id VARCHAR(3),
+      station_id INTEGER,
+      complex_id INTEGER,
+      division VARCHAR,
+      line VARCHAR,
+      stop_name VARCHAR,
+      borough VARCHAR,
+      cbd BOOLEAN,
+      daytime_routes VARCHAR,
+      structure VARCHAR,
+      gtfs_latitude DOUBLE,
+      gtfs_longitude DOUBLE,
+      north_direction_label VARCHAR,
+      south_direction_label VARCHAR,
+      ada INTEGER,
+      ada_northbound INTEGER,
+      ada_southbound INTEGER,
+      ada_notes VARCHAR,
+      georeference VARCHAR
+    );
+  """)
+
+  con.execute(f"""
+    COPY stops 
+    FROM '{file_path}' (AUTO_DETECT TRUE);
+  """)
+
+  # Starting program
+  print("""
+    Welcome to the subway program. \n
+    To begin, try typing 'help' to see the list of valid commands. \n
+    To exit, type 'quit'.
+    """)
+  
+  # Program loop
+  user_input = str(input("Enter option: "))
+  while user_input != "quit":
+    if user_input == "help":
+      print_help()
+    elif user_input == "liststations":
+      list_stations()
+    elif re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE):
+      match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
+      route = match.group(1).strip()
+      list_route_stations(con, route)
+    elif user_input == "^listroutes\s+(.+)$":
+      
+      list_routes(input)
+    else:
+      print("Invalid option. Type 'help' to see the list of valid commands.")
+    user_input = str(input("Enter option: "))
+
+if "__main__" == __name__:
+  main()
