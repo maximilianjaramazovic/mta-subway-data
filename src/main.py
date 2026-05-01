@@ -12,18 +12,56 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, csv, duckdb, os
+import sys, csv, sqlite3
+
+def main():
+  # Checking for input data table
+  arguments_list = sys.argv[1:]
+  if len(arguments_list) != 1:
+    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
+    exit(1)
+  else:
+    file_path = arguments_list[1]
+    initialize_db(file_path)
+
+
+  print("""
+    Welcome to the subway program. \n
+    To begin, try typing 'help' to see the list of valid commands. \n
+    """)
+  
+  # Program loop
+  user_input = str(input("Enter option: "))
+  while user_input != "quit":
+    if user_input == "help":
+      print_help()
+    else:
+      print("Invalid option. Type 'help' to see the list of valid commands.")
+    user_input = str(input("Enter option: "))
+
+def initialize_db(file_path):
+  with sqlite3.connect('mta.db') as con:
+    cur = con.cursor()
+    with open(file_path, mode="r") as f:
+        reader = csv.reader(f)
+        reader.__next__() # skipping header
+        data = list(reader)
+
+    # Bulk insterting data into the database
+    cur.executemany("INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?", data)
+
+
+if "__main__" == __name__:
+  main()
 
 def print_help():
-        print("""
-  help - prints this help message
-  liststations - print a list of names of all subway stations
-  listroutestations - lists the route of a specific train line (number or letter)
-  listroutes - lists the train lines at a given station
-  liststationportals - lists entrances/exits of a given station and if it has a elevator
-  nearest - nearest <latitude> <longitude> would provide nearby stations and routes
-  quit - exits the program
-  """)
+    print("""
+    liststations - print a list of names of all subway stations \n
+    listroutestations - lists the route of a specific train line (number or letter) \n
+    listroutes - lists the train lines at a given station \n
+    liststationportals - lists entrances/exits of a given station and if it has a elevator \n
+    nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
+    quit - """ )
 
 def list_stations(station_dict):
   # create a list for station names
@@ -33,12 +71,33 @@ def list_stations(station_dict):
   pass
   #DONE
 
-def list_route_stations(station_dict):
+def list_route_stations():
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
 	# print
-	pass
+    #Get Train Route from User
+    route = input("Enter the train line (e.g., N, R, M, 1): ").strip().upper()
+    #Connecting Database created in initialize_db
+    with sqlite3.connect('mta.db') as con:
+        cur = con.curser()
+
+        #Use of % since a station may serve many routes
+        #This looks for route anywhere in the 'route' column
+        query = "Select Distinct station_name FROM stations WHERE routes like ?"
+        cur.execute(query, (f'%{route}%',))
+
+        #Taking name and sorting
+        stations = [row[0] for row in cur.fetchall()]
+        stations.sort()
+
+    #Print results
+    if stations: 
+        print(f"\nStations on the {route} line:")
+        for station in stations:
+            print(f"- {stations}")
+    else:
+        print(f"No stations found for line {route}.")
 	#Done
 
 def list_routes(station_dict):
