@@ -11,7 +11,7 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, duckdb
+import sys, duckdb, re
 
 def print_help():
     print("""
@@ -30,23 +30,20 @@ def list_stations(station_dict):
   pass
   #DONE
 
-def list_route_stations(connection: duckdb.DuckDBPyConnection):
+def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
 	# print
-    #Get Train Route from User
-    route = input("Enter the train line (e.g., N, R, M, 1): ").strip().upper()
-    #Connecting Database created in initialize_db
 
     #Use of % since a station may serve many routes
-    #This looks for route anywhere in the 'route' column
+    #This looks for route anywhere in the 'daytime_routes' column
     query = f"""
       Select Distinct stop_name 
       FROM stops
       WHERE daytime_routes like ?
       """
-    connection.execute(query, (f'%{route}%',))
+    connection.execute(query, (f'%{route.upper()}%',))
 
     #Taking name and sorting
     stations = [row[0] for row in connection.fetchall()]
@@ -133,8 +130,10 @@ def main():
       print_help()
     elif user_input == "liststations":
       list_stations()
-    elif user_input == "listroutestations":
-      list_route_stations(con)
+    elif re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE):
+      match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
+      route = match.group(1).strip()
+      list_route_stations(con, route)
     elif user_input == "^listroutes\s+(.+)$":
       
       list_routes(input)
