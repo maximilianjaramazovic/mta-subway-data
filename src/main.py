@@ -24,13 +24,30 @@ def print_help():
     nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
     quit - """ )
 
-def list_stations(station_dict):
+def list_stations(connection: duckdb.DuckDBPyConnection):
+
   # create a list for station names
-  #for each item in statuion dict, add station name to list 
-  #sort the list
-  #print
-  pass
-  #DONE
+  #for each item in statuion dict, add station name to list sorted alphabetically
+    query = f"""
+            SELECT DISTINCT stop_name
+            FROM stops
+            ORDER BY stop_name ASC
+        """
+
+    connection.execute(query)
+  
+    #Getting names from the tuples
+    stations = [row[0] for row in connection.fetchall()]
+
+    #print
+    if stations:
+        print("\nAll Subway Sations:")
+        for station in stations:
+            print(f"- {station}")
+    else:
+        print("No stations found.")
+        
+    #DONE
 
 def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
 	# create a stations on a specific train line
@@ -104,9 +121,28 @@ def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
     print(f"- {route}")
 	#done
 
-def list_station_portals(station_name):
-	pass
-	#Done
+def list_station_portals(connection: duckdb.DBPyConnection, station_name):
+    # duckdb.query("""SELECT Entrance, Exit
+    #                 WHERE Station Name == ?""", station_name)
+    # Case sensitive
+    query = f"""
+        SELECT DISTINCY entrance_name, entrance_type
+        FROM stops 
+        WHERE stop_name = ?
+    """
+
+    connection.execute(query, (station_name,))
+    # Fetch name and type
+    portals = connection.fetchall()
+
+    #Print
+    if portals:
+        print(f"\nPortals for {station_name}:")
+        for name, e_type in portals:
+            # Match unique name and what type of entrance
+            print(f"- {name} (Type: {e_type})")
+    else:
+        print(f"No portals found for station: {station_name}. Double check station name")
 
 def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: float):
   if abs(latitude) > 180 or abs(longitude) > 180:
