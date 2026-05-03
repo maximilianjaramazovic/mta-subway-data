@@ -60,10 +60,32 @@ def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
 
 def list_routes(station_dict):
 	# Lists train lines of a specific station
+    # Get station name from user
+    station = input("Enter the station name (e.g., Rector St, 86 St): ").strip()
+
 	# for each train line found at a station, add train line to the list
+    # Selecting daytime_routes based on station
+    query = f"""
+        Select DISTINCT daytime_routes
+        FROM stops
+        WHERE stop_name LIKE ?
+    """
+
+    # Use of % so '86 St' can find 86 St - Lex Ave'
+    connection.execute(query, (f'%{station}%',))
+
 	# sort the list
+    # Using row[0] to unwrap
+    routes = [row[0] for row in connection.fetchall()]
+    routes.sort()
+
 	# print
-	pass
+    if routes: 
+        print(f"\nRoutes available at {station}:")
+        for route in routes:
+            print(f"- {route}")
+    else:
+        print(f"No routes found for station: {station}. Please check input")
 	#done
 
 def list_station_portals(station_name):
