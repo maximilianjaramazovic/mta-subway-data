@@ -13,6 +13,8 @@
 """
 import sys, duckdb, re, math, unittest
 
+#---------- MAIN PROGRAM FUNCTIONS ----------
+
 def print_help():
     print("""
     liststations - print a list of names of all subway stations \n
@@ -60,55 +62,51 @@ def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
 
 def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
 	# Lists train lines of a specific station
-  gps_match = re.match(r"")
-
-  street_match = re.match(r"")
+  
+  gps_match = re.match(r"^\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)$", arguments.strip(), re.IGNORECASE) # check for gps coordinate argument
+  street_match = re.match(r"^([^,]+),\s*([^,]+),\s*(NE|NW|SE|SW)$", arguments.strip(), re.IGNORECASE) # Check for street address
 
   if gps_match:
-    latitude = gps_match.group(0)
-    longitude = gps_match.group(1)
-
+    #extract arguments
+    latitude = gps_match.group(1)
+    longitude = gps_match.group(2)
+    station = f"({latitude}, {longitude})" # for output
+    
     query = """
       SELECT DISTINCT daytime_routes
       FROM stops
-      WHERE gtfs_latitude  ?   
+      WHERE gtfs_latitude == ?   
       AND gtfs_longitude == ?;
     """
+    params = [latitude, longitude]
   elif street_match:
-    
+    station = None
 
-  else:
     query = f"""
-        Select DISTINCT daytime_routes
-        FROM stops
-        WHERE stop_name LIKE ?
+      Select DISTINCT daytime_routes
+      FROM stops
+      WHERE stop_name LIKE ?
     """
 
-    # Use of % so '86 St' can find 86 St - Lex Ave'
-    connection.execute(query, (f'%{station}%',))
+    params = []
+  else: # Invalid case
+    print(f"No routes found for station: {station}. Please check input")
+	
 
-	# sort the list
-    # Using row[0] to unwrap
-    routes = [row[0] for row in connection.fetchall()]
-    routes.sort()
+  connection.execute(query, params)
+  #clean up results
+  routes = [row[0] for row in connection.fetchall()][0]
+  routes = routes.split(' ')
 
 	# print
-    if routes: 
-        print(f"\nRoutes available at {station}:")
-        for route in routes:
-            print(f"- {route}")
-    else:
-        print(f"No routes found for station: {station}. Please check input")
+  print(f"\nRoutes available at{station}:")
+  for route in routes:
+    print(f"- {route}")
 	#done
 
 def list_station_portals(station_name):
 	pass
 	#Done
-def haversine(lat1, long1, lat2, long2) -> float:
-  TWO_R = 2 * 6368 #km - earth's radious
-  delta_phi = (lat2 - lat1) / 2
-  delta_lamda = (long2 - long1) / 2
-  return TWO_R * math.asin(math.sqrt(math.pow(math.sin(delta_phi), 2) + math.cos(lat1) * math.cos(lat2) * math.pow(math.sin(delta_lamda), 2)))
 
 def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: float):
   if abs(latitude) > 180 or abs(longitude) > 180:
@@ -145,14 +143,15 @@ def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: 
     print(f"\nClosest routes: {routes}")
 	#Done 
 
-def main():
-  # Checking for input data table
-  if len(sys.argv) < 1:
-    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
-    exit(1)
-  else:
-    file_path = sys.argv[1]
+#---------- HELPER FUNCTIONS ----------
 
+def haversine(lat1, long1, lat2, long2) -> float:
+  TWO_R = 2 * 6368 #km - earth's radious
+  delta_phi = (lat2 - lat1) / 2
+  delta_lamda = (long2 - long1) / 2
+  return TWO_R * math.asin(math.sqrt(math.pow(math.sin(delta_phi), 2) + math.cos(lat1) * math.cos(lat2) * math.pow(math.sin(delta_lamda), 2)))
+
+def init_db():
   # Initialize duckdb  
   con = duckdb.connect()
   con.execute("""
@@ -183,7 +182,11 @@ def main():
     COPY stops 
     FROM '{file_path}' (AUTO_DETECT TRUE);
   """)
+  return con
 
+#---------- MAIN ----------
+
+def main(connection: duckdb.DuckDBPyConnection):
   # Starting program
   print("""
     Welcome to the subway program. \n
@@ -216,4 +219,12 @@ def main():
     user_input = str(input("Enter option: "))
 
 if "__main__" == __name__:
-  main()
+  if len(sys.argv) < 1:
+    print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
+    exit(1)
+  else:
+    file_path = sys.argv[1]
+
+  con = init_db()
+  list_routes(con, "(40.75529, -73.987495)")
+  main(con)
