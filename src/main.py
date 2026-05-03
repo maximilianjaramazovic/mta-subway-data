@@ -58,17 +58,50 @@ def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
         print(f"No stations found for line {route}.")
 	#Done
 
-def list_routes(station_dict):
+def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
 	# Lists train lines of a specific station
-	# for each train line found at a station, add train line to the list
+  gps_match = re.match(r"")
+
+  street_match = re.match(r"")
+
+  if gps_match:
+    latitude = gps_match.group(0)
+    longitude = gps_match.group(1)
+
+    query = """
+      SELECT DISTINCT daytime_routes
+      FROM stops
+      WHERE gtfs_latitude  ?   
+      AND gtfs_longitude == ?;
+    """
+  elif street_match:
+    
+
+  else:
+    query = f"""
+        Select DISTINCT daytime_routes
+        FROM stops
+        WHERE stop_name LIKE ?
+    """
+
+    # Use of % so '86 St' can find 86 St - Lex Ave'
+    connection.execute(query, (f'%{station}%',))
+
 	# sort the list
+    # Using row[0] to unwrap
+    routes = [row[0] for row in connection.fetchall()]
+    routes.sort()
+
 	# print
-	pass
+    if routes: 
+        print(f"\nRoutes available at {station}:")
+        for route in routes:
+            print(f"- {route}")
+    else:
+        print(f"No routes found for station: {station}. Please check input")
 	#done
 
 def list_station_portals(station_name):
-    # duckdb.query("""SELECT Entrance, Exit
-    #                 WHERE Station Name == ?""", station_name)
 	pass
 	#Done
 def haversine(lat1, long1, lat2, long2) -> float:
@@ -172,18 +205,14 @@ def main():
       match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
       route = match.group(1).strip()
       list_route_stations(con, route)
-    elif user_input == "^listroutes\s+(.+)$":
-      # list routes case
-      list_routes(input)
-    elif re.match(r"^nearest\s+([-]?\d+\.?\d*)\s+([-]?\d+\.?\d*)$", user_input, re.IGNORECASE):
-      # nearest case
-      match = re.match(r"^nearest\s+([-]?\d+\.?\d*)\s+([-]?\d+\.?\d*)$", user_input, re.IGNORECASE)
-      latitude = float(match.group(1))
-      longitude = float(match.group(2))
-      nearest(con, latitude, longitude)
+    elif re.match(r"^listroutes\s+(.+)$", user_input, re.IGNORECASE):
+      match = re.match(r"^listroutes\s+(.+)$", user_input, re.IGNORECASE)
+      args = match.group(1).strip()
+      list_routes(con, args)
     else:
       # invalid case
       print("Invalid option. Type 'help' to see the list of valid commands.")
+
     user_input = str(input("Enter option: "))
 
 if "__main__" == __name__:
