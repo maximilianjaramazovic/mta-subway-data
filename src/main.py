@@ -58,13 +58,17 @@ def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
         print(f"No stations found for line {route}.")
 	#Done
 
-def list_routes(station_dict):
+def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
 	# Lists train lines of a specific station
-    # Get station name from user
-    station = input("Enter the station name (e.g., Rector St, 86 St): ").strip()
+  gps_match = re.match(r"")
 
-	# for each train line found at a station, add train line to the list
-    # Selecting daytime_routes based on station
+  street_match = re.match(r"")
+
+  if gps_match:
+
+  elif street_match:
+
+  else:
     query = f"""
         Select DISTINCT daytime_routes
         FROM stops
@@ -89,8 +93,6 @@ def list_routes(station_dict):
 	#done
 
 def list_station_portals(station_name):
-    # duckdb.query("""SELECT Entrance, Exit
-    #                 WHERE Station Name == ?""", station_name)
 	pass
 	#Done
 
@@ -156,11 +158,13 @@ def main():
       match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
       route = match.group(1).strip()
       list_route_stations(con, route)
-    elif user_input == "^listroutes\s+(.+)$":
-      
-      list_routes(input)
+    elif re.match(r"^listroutes\s+(.+)$", user_input, re.IGNORECASE):
+      match = re.match(r"^listroutes\s+(.+)$", user_input, re.IGNORECASE)
+      args = match.group(1).strip()
+      list_routes(con, args)
     else:
       print("Invalid option. Type 'help' to see the list of valid commands.")
+
     user_input = str(input("Enter option: "))
 
 if "__main__" == __name__:
