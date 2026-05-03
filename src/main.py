@@ -65,8 +65,17 @@ def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
   street_match = re.match(r"")
 
   if gps_match:
+    latitude = gps_match.group(0)
+    longitude = gps_match.group(1)
 
+    query = """
+      SELECT DISTINCT daytime_routes
+      FROM stops
+      WHERE gtfs_latitude  ?   
+      AND gtfs_longitude == ?;
+    """
   elif street_match:
+    
 
   else:
     query = f"""
