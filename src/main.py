@@ -11,7 +11,7 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, duckdb, re
+import sys, duckdb, re, math, unittest
 
 def print_help():
     print("""
@@ -71,10 +71,45 @@ def list_station_portals(station_name):
     #                 WHERE Station Name == ?""", station_name)
 	pass
 	#Done
+def haversine(lat1, long1, lat2, long2) -> float:
+  TWO_R = 2 * 6368 #km - earth's radious
+  delta_phi = (lat2 - lat1) / 2
+  delta_lamda = (long2 - long1) / 2
+  return TWO_R * math.asin(math.sqrt(math.pow(math.sin(delta_phi), 2) + math.cos(lat1) * math.cos(lat2) * math.pow(math.sin(delta_lamda), 2)))
 
-def nearest(station_dict):
+def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: float):
+  if abs(latitude) > 180 or abs(longitude) > 180:
+    print("Invalid nearest command. Type 'help' for usage details.")
+    return
+  
+  rows = connection.execute("""
+    SELECT
+      stop_name,
+      gtfs_latitude,
+      gtfs_longitude,
+      daytime_routes,
+    FROM stops
+""").fetchall()
+  
+  min_distance = float('inf')
+  closest = None
 
-	pass
+  for row in rows:
+    plat = row[1]
+    plon = row[2]
+
+    distance = haversine(latitude, longitude, plat, plon)
+
+    if distance < min_distance:
+      min_distance = distance
+      closest = row
+
+    print("\nClosest portal:")
+    print(f"    General portal location: {closest[3]} & {closest[4]} at {closest[5]} corner")
+    print(f"    Unique portal: ({closest[1]}, {closest[2]})")
+
+    routes = closest[6].replace(" ", ",")
+    print(f"\nClosest routes: {routes}")
 	#Done 
 
 def main():
@@ -127,17 +162,27 @@ def main():
   user_input = str(input("Enter option: "))
   while user_input != "quit":
     if user_input == "help":
+      # help case
       print_help()
     elif user_input == "liststations":
+      # list stations case
       list_stations()
     elif re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE):
+      # List route stations case
       match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
       route = match.group(1).strip()
       list_route_stations(con, route)
     elif user_input == "^listroutes\s+(.+)$":
-      
+      # list routes case
       list_routes(input)
+    elif re.match(r"^nearest\s+([-]?\d+\.?\d*)\s+([-]?\d+\.?\d*)$", user_input, re.IGNORECASE):
+      # nearest case
+      match = re.match(r"^nearest\s+([-]?\d+\.?\d*)\s+([-]?\d+\.?\d*)$", user_input, re.IGNORECASE)
+      latitude = float(match.group(1))
+      longitude = float(match.group(2))
+      nearest(con, latitude, longitude)
     else:
+      # invalid case
       print("Invalid option. Type 'help' to see the list of valid commands.")
     user_input = str(input("Enter option: "))
 
