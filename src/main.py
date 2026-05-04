@@ -1,17 +1,18 @@
 """
   MTA Subway Station Data Program
-  Usage: main.py <path to mta data table>
+  Usage: uv run main.py <path to mta data table>
   Description: 
     This program takes in a data table of mta subway stations and allows the user to query the data
     in various ways, such as listing all stations, listing stations on a specific train line, listing
     train lines at a specific station, listing entrances/exits of a specific station and accessibility,
     and finding nearby stations based on latitude and longitude. The program is designed to be
     user-friendly and provides helpful prompts for the user to navigate through the options.
-  Authors: 
+  
+  Authors: Nathan Climaco, Maximilian Jaramazovic, Christopher Sandoval Ochoa
   Date: 4/20/2026
-  Data Source: 
+  Data Source: https://catalog.data.gov/dataset/mta-subway-stations
 """
-import sys, duckdb, re, math
+import sys, duckdb, re, math, os, csv
 
 #---------- MAIN PROGRAM FUNCTIONS ----------
 
@@ -22,7 +23,7 @@ def print_help(): # COMPLETE
     listroutes - lists the train lines at a given station \n
     liststationportals - lists entrances/exits of a given station and if it has a elevator \n
     nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
-    quit - """ )
+    quit - quits the program""" )
 
 def list_stations(connection: duckdb.DuckDBPyConnection): # COMPLETE
 
@@ -109,14 +110,19 @@ def list_routes(connection: duckdb.DuckDBPyConnection, arguments): # only half f
 
     params = []
   else: # Invalid case
-    print(f"No routes found for station: {station}. Please check input")
+    print(f"No routes found for station. Please check input")
+    return
 	
 
   connection.execute(query, params)
   #clean up results
-  routes = [row[0] for row in connection.fetchall()][0]
-  routes = routes.split(' ')
-
+  result = connection.fetchall()
+  if len(result):
+    routes = [row[0] for row in result][0]
+    routes = routes.split(' ')
+  else:
+    print("No station with those coordinates were found.")
+    return
 	# print
   print(f"\nRoutes available at{station}:")
   for route in routes:
@@ -222,6 +228,41 @@ def init_db():
   """)
   return con
 
+def validate_csv(file_path):
+  EXPECTED_HEADER = [
+    "GTFS Stop ID",
+    "Station ID",
+    "Complex ID",
+    "Division",
+    "Line",
+    "Stop Name",
+    "Borough",
+    "CBD",
+    "Daytime Routes",
+    "Structure",
+    "GTFS Latitude",
+    "GTFS Longitude",
+    "North Direction Label",
+    "South Direction Label",
+    "ADA",
+    "ADA Northbound",
+    "ADA Southbound",
+    "ADA Notes",
+    "Georeference"
+  ]
+
+  try:
+    with open(file_path, "r", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        header = next(reader)
+
+        if header != EXPECTED_HEADER:
+            print("Warning: data file may be corrupted or incorrectly formatted.")
+            sys.exit(1)
+
+  except Exception:
+    print(f"Error: cannot open file '{file_path}'.")
+    sys.exit(1)
 #---------- MAIN ----------
 
 def main(connection: duckdb.DuckDBPyConnection):
@@ -240,7 +281,7 @@ def main(connection: duckdb.DuckDBPyConnection):
       print_help()
     elif user_input == "liststations":
       # list stations case
-      list_stations()
+      list_stations(con)
     elif re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE):
       # List route stations case
       match = re.match(r"^listroutestations\s+(.+)$", user_input, re.IGNORECASE)
@@ -251,8 +292,14 @@ def main(connection: duckdb.DuckDBPyConnection):
       args = match.group(1).strip()
       list_routes(con, args)
     elif re.match(r"^liststationportals\s+(.+)$", user_input, re.IGNORECASE):
-      print("not done")
-    elif
+      print("We appreciate your patience, and sorry for any inconveniences. This functionality is still under work, and not functional.")
+    elif re.match(r"^nearest\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)$", user_input, re.IGNORECASE):
+      match = re.match(r"^nearest\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)$", user_input, re.IGNORECASE)
+
+      if match:
+        latitude = float(match.group(1))
+        longitude = float(match.group(2))
+        nearest(con, latitude, longitude)
     else:
       # invalid case
       print("Invalid option. Type 'help' to see the list of valid commands.")
@@ -260,11 +307,17 @@ def main(connection: duckdb.DuckDBPyConnection):
     user_input = str(input("Enter option: "))
 
 if "__main__" == __name__:
-  if len(sys.argv) < 1:
+  if len(sys.argv) < 2:
     print("""Error: No arguments were provided. Please provide the path to the mta data table as an argument.\nUsage: main.py <path to mta data table>""")
     exit(1)
-  else:
-    file_path = sys.argv[1]
+
+  file_path = sys.argv[1]
+
+  if not os.path.isfile(file_path):
+    print(f"Error: cannot open file '{file_path}'.")
+    sys.exit(1)
+
+  validate_csv(file_path)
 
   con = init_db()
 
