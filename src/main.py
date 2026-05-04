@@ -11,11 +11,11 @@
   Date: 4/20/2026
   Data Source: 
 """
-import sys, duckdb, re, math, unittest
+import sys, duckdb, re, math
 
 #---------- MAIN PROGRAM FUNCTIONS ----------
 
-def print_help():
+def print_help(): # COMPLETE
     print("""
     liststations - print a list of names of all subway stations \n
     listroutestations - lists the route of a specific train line (number or letter) \n
@@ -24,7 +24,7 @@ def print_help():
     nearest - nearest <latitude> <longitude> would provide nearby stations and routes \n
     quit - """ )
 
-def list_stations(connection: duckdb.DuckDBPyConnection):
+def list_stations(connection: duckdb.DuckDBPyConnection): # COMPLETE
 
   # create a list for station names
   #for each item in statuion dict, add station name to list sorted alphabetically
@@ -49,7 +49,7 @@ def list_stations(connection: duckdb.DuckDBPyConnection):
         
     #DONE
 
-def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
+def list_route_stations(connection: duckdb.DuckDBPyConnection, route): # COMPLETE
 	# create a stations on a specific train line
 	# for each station that has that train line, add station name to train station list
 	# sort the list
@@ -77,7 +77,7 @@ def list_route_stations(connection: duckdb.DuckDBPyConnection, route):
         print(f"No stations found for line {route}.")
 	#Done
 
-def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
+def list_routes(connection: duckdb.DuckDBPyConnection, arguments): # only half functional with only coordinates(have to be exact)
 	# Lists train lines of a specific station
   
   gps_match = re.match(r"^\((-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\)$", arguments.strip(), re.IGNORECASE) # check for gps coordinate argument
@@ -97,6 +97,8 @@ def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
     """
     params = [latitude, longitude]
   elif street_match:
+    print("This function was not implemented, only coordinate functionality works.")
+    return
     station = None
 
     query = f"""
@@ -121,12 +123,12 @@ def list_routes(connection: duckdb.DuckDBPyConnection, arguments):
     print(f"- {route}")
 	#done
 
-def list_station_portals(connection: duckdb.DBPyConnection, station_name):
+def list_station_portals(connection: duckdb.DBPyConnection, station_name): # Incorrect and not in use
     # duckdb.query("""SELECT Entrance, Exit
     #                 WHERE Station Name == ?""", station_name)
     # Case sensitive
     query = f"""
-        SELECT DISTINCY entrance_name, entrance_type
+        SELECT DISTINCT entrance_name, entrance_type
         FROM stops 
         WHERE stop_name = ?
     """
@@ -144,7 +146,7 @@ def list_station_portals(connection: duckdb.DBPyConnection, station_name):
     else:
         print(f"No portals found for station: {station_name}. Double check station name")
 
-def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: float):
+def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: float): # Complete
   if abs(latitude) > 180 or abs(longitude) > 180:
     print("Invalid nearest command. Type 'help' for usage details.")
     return
@@ -171,12 +173,12 @@ def nearest(connection: duckdb.DuckDBPyConnection, latitude: float , longitude: 
       min_distance = distance
       closest = row
 
-    print("\nClosest portal:")
-    print(f"    General portal location: {closest[3]} & {closest[4]} at {closest[5]} corner")
-    print(f"    Unique portal: ({closest[1]}, {closest[2]})")
+  print("\nClosest portal:")
+  print(f"    General portal location: {closest[1]} & {closest[2]} at {closest[0]} corner")
+  print(f"    Unique portal: ({closest[1]}, {closest[2]})")
 
-    routes = closest[6].replace(" ", ",")
-    print(f"\nClosest routes: {routes}")
+  routes = closest[3].split(" ")
+  print(f"\nClosest routes: {routes}")
 	#Done 
 
 #---------- HELPER FUNCTIONS ----------
@@ -248,6 +250,9 @@ def main(connection: duckdb.DuckDBPyConnection):
       match = re.match(r"^listroutes\s+(.+)$", user_input, re.IGNORECASE)
       args = match.group(1).strip()
       list_routes(con, args)
+    elif re.match(r"^liststationportals\s+(.+)$", user_input, re.IGNORECASE):
+      print("not done")
+    elif
     else:
       # invalid case
       print("Invalid option. Type 'help' to see the list of valid commands.")
@@ -262,5 +267,5 @@ if "__main__" == __name__:
     file_path = sys.argv[1]
 
   con = init_db()
-  list_routes(con, "(40.75529, -73.987495)")
+
   main(con)
